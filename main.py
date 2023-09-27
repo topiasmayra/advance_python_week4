@@ -78,7 +78,7 @@ def check_collision():
 # Define the function for moving monkeys
 def move_monkeys():
     global collision
-    x0, y0, x1, y1 = canvas.coords(monkey)  # Get the current position of the monkey
+    x0, y0, x1, y1 = canvas.coords(monkey_)  # Get the current position of the monkey
     y_center = (y0 + y1) / 2  # Calculate the vertical center of the monkey
     island_top = 0  # Set the top of the island
 
