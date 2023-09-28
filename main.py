@@ -52,15 +52,17 @@ continent_label.pack(side="right")  # Place continent image on the left
 canvas = tk.Canvas(ikkuna, width=900, height=600)
 canvas.pack(side="top")
 
-# Define function for drawing monkeys from Island to Continent
-monkey_ernesti = canvas.create_oval(50, 50, 60, 60, fill="brown",tags="ernesti_monkey")
-monkey_kernesti = canvas.create_oval(50, 550, 60, 560, fill="red")
 
 # Define a global variable to track collision
 collision = False
 collision_ernesti = False
 collision_kernesti = False
+# Create locks for thread safety
+ernesti_lock = threading.Lock()
+kernesti_lock = threading.Lock()
 
+monkey_ernesti_lock = threading.Lock()
+monkey_kernesti_lock = threading.Lock()
 def check_collision_ernesti():
     global collision_ernesti
     x0, y0, x1, y1 = canvas.coords(monkey_ernesti)  # Get the current position of the monkey_ernesti
@@ -72,8 +74,6 @@ def check_collision_ernesti():
         print("Collision with ernesti!")
         winsound.Beep(800, 900)
 
-        # Delete the kernesti monkey object
-        canvas.delete(monkey_ernesti)
 def check_collision_kernesti():
     global collision_kernesti
     x0, y0, x1, y1 = canvas.coords(monkey_kernesti)
@@ -85,57 +85,92 @@ def check_collision_kernesti():
         print("Kernesti Collision!")
         winsound.Beep(940, 800)
 
-        # Delete the kernesti monkey object
-        canvas.delete("kernesti_monkey")
+# Create global variables to track the monkeys
+monkey_ernesti = None
+monkey_kernesti = None
+
+# Create locks for thread safety
+ernesti_lock = threading.Lock()
+kernesti_lock = threading.Lock()
 
 
 
-# Define the function for moving ernesti monkey
-def move_ernesti_monkey():
-    global collision_ernesti
-    x0, y0, x1, y1 = canvas.coords(monkey_ernesti)  # Get the current position of the monkey_ernesti
-    y_center = (y0 + y1) / 2  # Calculate the vertical center of the monkey_ernesti
-    island_top = 0  # Set the top of the island
+# Button to start monkeys
 
-    while not collision:
-        for i in range(500):
-            if y0 > 0:  # Check if the monkey_ernesti is still above the top of the canvas
-                canvas.move(monkey_ernesti, 1, 0)  # Move right
-                ikkuna.update()
-                # short beep
-                winsound.Beep(440, 500)
-                time.sleep(0.05)
-                check_collision_ernesti()  # Check for collision after each movement
+def start_monkeys_swimming():
+    create_new_monkey_and_start_thread_ernesti()
+    create_new_monkey_and_start_thread_kernesti()
+def create_new_monkey_and_start_thread_kernesti():
+    global monkey_kernesti
+    with kernesti_lock:
+        if monkey_kernesti is None:
+            monkey_kernesti = canvas.create_oval(50, 550, 60, 560, fill="red")
+            thread_kernesti = threading.Thread(target=move_monkey_kernesti)
+            thread_kernesti.start()
 
-# Define the function for moving kernesti monkey
-def move_kernesti_monkey():
-    global collision_kernesti
-    x0, y0, x1, y1 = canvas.coords(monkey_kernesti)  # Get the current position of the monkey_kernesti
-    y_center = (y0 + y1) / 2  # Calculate the vertical center of the monkey_kernesti
-    island_top = 0  # Set the top of the island
+def start_monkeys_swimming():
+    create_new_monkey_and_start_thread_ernesti()
+    create_new_monkey_and_start_thread_kernesti()
+# Button to start monkeys swimming
 
-    # while not collision:  # Commented out to remove collision detection
-    for i in range(500):
-        canvas.move(monkey_kernesti, 1, 0)  # Move right
+def create_new_monkey_and_start_thread_ernesti():
+    global monkey_ernesti
+    with ernesti_lock:
+        if monkey_ernesti is None:
+            monkey_ernesti = canvas.create_oval(50, 450, 60, 460, fill="brown")
+
+            thread_ernesti = threading.Thread(target=move_monkey_ernesti)
+            thread_ernesti.start()
+
+def create_new_monkey_and_start_thread_kernesti():
+    global monkey_kernesti
+    with kernesti_lock:
+        if monkey_kernesti is None:
+            monkey_kernesti = canvas.create_oval(50, 150, 60, 160, fill="red")
+            thread_kernesti = threading.Thread(target=move_monkey_kernesti)
+            thread_kernesti.start()
+
+start_button = tk.Button(ikkuna, text="Start Swimming", command=start_monkeys_swimming)
+start_button.pack()
+
+
+def move_monkey_ernesti():
+    global monkey_ernesti
+    x1 = 50  # Initial x-coordinate
+    x2 = 350  # Destination x-coordinate
+    while x1 < x2:
+        with monkey_ernesti_lock:
+            if monkey_ernesti is None:
+                break  # Exit the loop if monkey is removed
+            canvas.move(monkey_ernesti, 5, 0)  # Move the monkey 5 pixels to the right
+            winsound.Beep(440, 500)
+            x1 += 5
+
         ikkuna.update()
-        winsound.Beep(100, 400)
-        time.sleep(0.05)
-        check_collision_kernesti()
+        time.sleep(0.1)
+    with monkey_ernesti_lock:
+        if monkey_ernesti is not None:
+            canvas.delete(monkey_ernesti)
+            monkey_ernesti = None
+            create_new_monkey_and_start_thread_ernesti()
 
-# Create threads for each monkey
-thread_ernesti = threading.Thread(target=move_ernesti_monkey)
-thread_kernesti = threading.Thread(target=move_kernesti_monkey)
-
-# Start the threads
-thread_ernesti.start()
-thread_kernesti.start()
-while True:
-    if collision_ernesti and collision_kernesti:
-        i_suppose_i_have_earned_so_much_points(1)
-        break  # Exit the loop
-
-
-# Continuously check for collisions until both monkeys have collided
+def move_monkey_kernesti():
+    global monkey_kernesti
+    x1 = 50  # Initial x-coordinate
+    x2 = 350  # Destination x-coordinate
+    while x1 < x2:
+        with monkey_kernesti_lock:
+            if monkey_kernesti is None:
+                break  # Exit the loop if monkey is removed
+            canvas.move(monkey_kernesti, 5, 0)  # Move the monkey 5 pixels to the right
+            x1 += 5
+            winsound.Beep(100, 400)
+        ikkuna.update()
+        time.sleep(0.1)
+    with monkey_kernesti_lock:
+        if monkey_kernesti is not None:
+            canvas.delete(monkey_kernesti)
+            monkey_kernesti = None
+            create_new_monkey_and_start_thread_kernesti()
 
 ikkuna.mainloop()
-
