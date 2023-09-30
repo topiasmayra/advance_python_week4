@@ -4,7 +4,6 @@ from PIL import Image, ImageTk
 import time
 import threading
 import random
-from concurrent.futures import ThreadPoolExecutor
 import simpleaudio as sa
 ikkuna = tk.Tk()
 ikkuna.title("Exercise 5")
@@ -354,8 +353,79 @@ def execute_function():
             i_suppose_i_have_earned_so_much_points(2)
             print("Function executed for both ernesti and kernesti.")
             points= True
+# Create a list to store monkey objects
+monkeys = []
 
+class Monkey:
+    def __init__(self, canvas, x, y, color, probability_of_being_eaten):
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        self.color = color
+        self.probability_of_being_eaten = probability_of_being_eaten
+        self.dot = canvas.create_oval(x, y, x + 10, y + 10, fill=color)
+        self.thread = threading.Thread(target=self.move)
+        self.thread.start()
+        self.stop_thread_flag = False  # Flag to indicate whether to stop the thread
 
+    def move(self):
+        while self.x < 800:
+            dx = random.randint(1, 5)
+            dy = random.randint(-2, 2)
+            self.canvas.move(self.dot, dx, dy)
+            self.x += dx
+            self.y += dy
+            winsound.Beep(6969, 10)
+            time.sleep(0.1)
+            if not self.stop_thread_flag:
+                self.check_collision()  # Check for collision after each movement
+
+        self.canvas.delete(self.dot)
+
+    def check_collision(self):
+        x0, y0, x1, y1 = self.canvas.coords(self.dot)
+        monkey_center_x = (x0 + x1) / 2
+        continent_x = self.canvas.winfo_width()
+
+        if monkey_center_x >= continent_x and random.random() < self.probability_of_being_eaten:
+            print(f"{self.color} monkey eaten")
+            winsound.Beep(1000, 400)
+            self.stop_thread()
+        
+
+    def stop_thread(self):
+        self.stop_thread_flag = True  # Set the flag to stop the thread
+
+   
+# Create a list to store monkey objects
+monkeys = []
+
+# Function to start the monkey animation
+def start_animation():
+    global monkeys
+
+    # Clear any existing monkeys
+    for monkey in monkeys:
+        monkey.stop_thread()
+    monkeys = []
+
+    # Create 10 Kernesti monkeys starting from the north
+    for _ in range(10):
+        x = random.randint(10, 790)
+        y = random.randint(10, 290)
+        kernesti = Monkey(canvas, x, y, "red", 0.05)
+        monkeys.append(kernesti)
+
+    # Create 10 Ernesti monkeys starting from the south
+    for _ in range(10):
+        x = random.randint(10, 790)
+        y = random.randint(310, 590)
+        ernesti = Monkey(canvas, x, y, "brown", 0.05)
+        monkeys.append(ernesti)
+
+# Create a button to start the animation
+start_button = tk.Button(ikkuna, text="Start Animation", command=start_animation)
+start_button.pack()
 
 
 ikkuna.mainloop()
