@@ -3,6 +3,9 @@ import winsound
 from PIL import Image, ImageTk
 import time
 import threading
+import random
+from concurrent.futures import ThreadPoolExecutor
+
 ikkuna = tk.Tk()
 ikkuna.title("Exercise 5")
 ikkuna.geometry("700x700")
@@ -65,6 +68,11 @@ monkey_ernesti_lock = threading.Lock()
 monkey_kernesti_lock = threading.Lock()
 current_word_index_kernesti = 0
 current_word_index_ernesti = 0
+# Add variables to keep track of monkeys
+total_monkeys_sent_ernesti = 0
+total_monkeys_sent_kernesti = 0
+ernesti_monkeys_making_it = 0
+kernesti_monkeys_making_it = 0
 sentence_words = ["Ernesti", "ja", "Kernesti", "tässä", "terve!", "Olemme", "autiolla", "saarella,", "ja", "voisitteko", "tulla", "sieltä", "sivistyksestä", "joku", "hakemaan", "meidät", "pois!", "Kiitos!"]
 
 
@@ -89,31 +97,6 @@ def kernesti_select_word():
             word = sentence_words[current_word_index_kernesti]
             kernesti_sentence.append(word)
             current_word_index_kernesti += 1
-
-
-# Function to check and display Kernesti's progress
-
-
-def move_monkey_ernesti():
-    global monkey_ernesti, stop_thread_ernesti
-    x1 = 50  # Initial x-coordinate
-    x2 = 350  # Destination x-coordinate
-    while x1 < x2 and not stop_thread_ernesti:
-        with monkey_ernesti_lock:
-            if monkey_ernesti is None:
-                break  # Exit the loop if monkey is removed
-            canvas.move(monkey_ernesti, 5, 0)  # Move the monkey 5 pixels to the right
-            x1 += 5
-            winsound.Beep(100, 400)
-            check_collision_ernesti()  # Check for collision after each movement
-        ikkuna.update()
-        time.sleep(0.1)
-    with monkey_ernesti_lock:
-        if monkey_ernesti is not None:
-            canvas.delete(monkey_ernesti)
-            monkey_ernesti = None
-            stop_thread_ernesti = False  # Reset the flag
-            create_new_monkey_and_start_thread_ernesti()
 
 def check_collision_kernesti():
     global collision_kernesti, stop_thread_kernesti
@@ -176,6 +159,8 @@ def create_new_monkey_and_start_thread_ernesti():
             thread_ernesti = threading.Thread(target=move_monkey_ernesti)
             thread_ernesti.start()
 
+
+
 def create_new_monkey_and_start_thread_kernesti():
     global monkey_kernesti
     global collision_kernesti
@@ -188,6 +173,39 @@ def create_new_monkey_and_start_thread_kernesti():
 
 start_button = tk.Button(ikkuna, text="Start Swimming", command=start_monkeys_swimming)
 start_button.pack()
+def move_monkey_ernesti():
+    global monkey_ernesti, stop_thread_ernesti
+    x1 = 50  # Initial x-coordinate
+    x2 = 350  # Destination x-coordinate
+    while x1 < x2 and not stop_thread_ernesti:
+        with monkey_ernesti_lock:
+            if monkey_ernesti is None:
+                break  # Exit the loop if monkey is removed
+
+            probality_of_being_eaten=0.05
+            if random.random() < probality_of_being_eaten:
+                print("ernesti eaten")
+                winsound.Beep(450, 400)
+                canvas.delete(monkey_ernesti)
+                monkey_ernesti = None
+                stop_thread_ernesti = True
+                create_new_monkey_and_start_thread_ernesti()
+                break
+            else:
+                canvas.move(monkey_ernesti, 5, 0)  # Move the monkey 5 pixels to the right
+                x1 += 5
+                winsound.Beep(100, 400)
+                check_collision_ernesti()  # Check for collision after each movement
+        ikkuna.update()
+        time.sleep(0.1)
+    with monkey_ernesti_lock:
+        if monkey_ernesti is not None:
+            canvas.delete(monkey_ernesti)
+            monkey_ernesti = None
+            stop_thread_ernesti = False  # Reset the flag
+            create_new_monkey_and_start_thread_ernesti()
+
+
 def move_monkey_kernesti():
     global monkey_kernesti, stop_thread_kernesti
     x1 = 50  # Initial x-coordinate
@@ -196,10 +214,20 @@ def move_monkey_kernesti():
         with monkey_kernesti_lock:
             if monkey_kernesti is None:
                 break  # Exit the loop if monkey is removed
-            canvas.move(monkey_kernesti, 5, 0)  # Move the monkey 5 pixels to the right
-            x1 += 5
-            winsound.Beep(500, 400)
-            check_collision_kernesti()  # Check for collision after each movement
+            probality_of_being_eaten=0.05
+            if random.random() < probality_of_being_eaten:
+                print("kernesti eaten")
+                winsound.Beep(1000, 400)
+                canvas.delete(monkey_kernesti)
+                monkey_kernesti = None
+                stop_thread_kernesti = True
+                create_new_monkey_and_start_thread_kernesti()
+                break
+            else:
+                canvas.move(monkey_kernesti, 5, 0)  # Move the monkey 5 pixels to the right
+                x1 += 5
+                winsound.Beep(500, 400)
+                check_collision_kernesti()  # Check for collision after each movement
         ikkuna.update()
         time.sleep(0.1)
     with monkey_kernesti_lock:
@@ -208,21 +236,27 @@ def move_monkey_kernesti():
             monkey_kernesti = None
             stop_thread_kernesti = False  # Reset the flag
             create_new_monkey_and_start_thread_kernesti()
+executor = ThreadPoolExecutor(max_workers=10)
+
+# Function to create and send monkeys for Ernesti
+def ernesti_send_monkeys():
+    for _ in range(10):
+        create_new_monkey_and_start_thread_ernesti()
+
+# Function to create and send monkeys for Kernesti
+def kernesti_send_monkeys():
+    for _ in range(10):
+        create_new_monkey_and_start_thread_kernesti()
+        print("kernesti sent monkey")
+# Button to assign Ernesti and Kernesti to send monkeys
+def assign_monkeys():
+    executor.submit(ernesti_send_monkeys)
+    executor.submit(kernesti_send_monkeys)
 
 
-def check_kernesti_progress():
-    global current_word_index_kernesti
-    if current_word_index_kernesti < len(sentence_words):
-        words_learned = current_word_index_kernesti
-        total_words = len(sentence_words)
-        print(f"Kernesti has learned {words_learned}/{total_words} words.")
-        print(collision_kernesti)
-        print("ernesti collision" + str(collision_ernesti))
-        print("ernesti threath" + str(stop_thread_ernesti))
+
+assign_monkeys_button = tk.Button(ikkuna, text="Assign Monkeys", command=assign_monkeys)
+assign_monkeys_button.pack()
 
 
-
-
-button_to_check= tk.Button(ikkuna, text="Check Progress", command=check_kernesti_progress)
-button_to_check.pack()
 ikkuna.mainloop()
