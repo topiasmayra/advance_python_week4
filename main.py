@@ -427,6 +427,4 @@ def start_animation():
 # Create a button to start the animation
 start_button = tk.Button(ikkuna, text="Start Animation", command=start_animation)
 start_button.pack()
-
-
 ikkuna.mainloop()
