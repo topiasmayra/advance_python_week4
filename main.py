@@ -405,7 +405,6 @@ def start_animation():
     global monkeys
 
     # Clear any existing monkeys
-    for monkey in monkeys:
         monkey.stop_thread()
     monkeys = []
 
